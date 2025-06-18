@@ -77,7 +77,7 @@ class ScanResult(BaseModel):
     status: ScanStatus = ScanStatus.PENDING
     started_at: datetime = Field(default_factory=datetime.utcnow)
     completed_at: Optional[datetime] = None
-    duration_seconds: Optional[int] = None
+    duration_seconds: Optional[float] = None
     devices_discovered: int = 0
     vulnerabilities_found: int = 0
     ports_scanned: int = 0
