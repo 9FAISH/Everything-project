@@ -1,53 +1,92 @@
-import { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import axios from "axios";
 
+// Import components
+import Dashboard from "./components/Dashboard";
+import DeviceManager from "./components/DeviceManager";
+import VulnerabilityScanner from "./components/VulnerabilityScanner";
+import AlertCenter from "./components/AlertCenter";
+import NetworkScanner from "./components/NetworkScanner";
+import Sidebar from "./components/Sidebar";
+import Header from "./components/Header";
+import { ThemeProvider } from "./context/ThemeContext";
+
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
+function App() {
+  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [systemStatus, setSystemStatus] = useState('checking');
+
+  // Check system health on startup
+  useEffect(() => {
+    const checkSystemHealth = async () => {
+      try {
+        const response = await axios.get(`${API}/health`);
+        if (response.data.status === 'healthy') {
+          setSystemStatus('online');
+        } else {
+          setSystemStatus('degraded');
+        }
+      } catch (error) {
+        console.error('System health check failed:', error);
+        setSystemStatus('offline');
+      }
+    };
+
+    checkSystemHealth();
+    
+    // Check health every 30 seconds
+    const healthInterval = setInterval(checkSystemHealth, 30000);
+    
+    return () => clearInterval(healthInterval);
+  }, []);
+
+  const renderCurrentPage = () => {
+    switch (currentPage) {
+      case 'dashboard':
+        return <Dashboard />;
+      case 'devices':
+        return <DeviceManager />;
+      case 'vulnerabilities':
+        return <VulnerabilityScanner />;
+      case 'alerts':
+        return <AlertCenter />;
+      case 'scanner':
+        return <NetworkScanner />;
+      default:
+        return <Dashboard />;
     }
   };
 
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
-};
-
-function App() {
-  return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </div>
+    <ThemeProvider>
+      <div className="App min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+        <BrowserRouter>
+          <div className="flex h-screen">
+            {/* Sidebar */}
+            <Sidebar 
+              currentPage={currentPage} 
+              setCurrentPage={setCurrentPage}
+              systemStatus={systemStatus}
+            />
+            
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Header */}
+              <Header systemStatus={systemStatus} />
+              
+              {/* Page Content */}
+              <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-gray-900 p-6">
+                {renderCurrentPage()}
+              </main>
+            </div>
+          </div>
+        </BrowserRouter>
+      </div>
+    </ThemeProvider>
   );
 }
 
